@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy # necessary for docker-gen, see https://github.com/nginx-proxy/acme-companion/blob/main/docs/Getting-containers-IDs.md
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${PREFIX:?}conf:/etc/nginx/conf.d
+      - ${PREFIX:?}vhost:/etc/nginx/vhost.d
+      - ${PREFIX:?}html:/usr/share/nginx/html
+      - ${PREFIX:?}certs:/etc/nginx/certs:ro
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+    restart: always
+
+  docker-gen:
+    image: nginxproxy/docker-gen
+    command: -notify-sighup nginx-proxy -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    volumes:
+      - ${PREFIX:?}conf:/etc/nginx/conf.d
+      - ${PREFIX:?}vhost:/etc/nginx/vhost.d
+      - ${PREFIX:?}html:/usr/share/nginx/html
+      - ${PREFIX:?}certs:/etc/nginx/certs:ro
+      - ./nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.docker_gen"
+    restart: always
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    volumes:
+      - ${PREFIX:?}conf:/etc/nginx/conf.d
+      - ${PREFIX:?}vhost:/etc/nginx/vhost.d
+      - ${PREFIX:?}html:/usr/share/nginx/html
+      - ${PREFIX:?}certs:/etc/nginx/certs
+      - ${PREFIX:?}acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DEFAULT_EMAIL: ${DEFAULT_EMAIL:?}
+    restart: always
