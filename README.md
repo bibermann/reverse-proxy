@@ -20,6 +20,9 @@ Docker Compose project for [GitHub » nginx-proxy / acme-companion](https://gith
     echo "NETWORK=$NETWORK" >> .env
     sudo mkdir -p ${PREFIX}{conf,vhost,html,certs,acme}
     sudo docker network create $NETWORK
+
+    # Increase body size limit
+    echo 'client_max_body_size 4096M;' >${PREFIX}conf/larger_body.conf
     ```
 - Initialization/Update
     ```bash
